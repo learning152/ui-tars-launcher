@@ -50,6 +50,16 @@ npm run dist
 
 安装包生成于 `release/` 目录，安装后即可桌面快捷方式启动。
 
+### 4️下 载 安 装
+
+直接下载已打包的 Windows 便携版：
+
+| 版本 | 下载链接 | 说明 |
+|------|----------|------|
+| v1.0.0 | [Releases](https://github.com/learning152/ui-tars-launcher/releases) | Windows 便携版（约 125MB） |
+
+下载后解压，双击 `UI-TARS-Launcher.exe` 即可运行。
+
 ## 技术栈
 
 | 技术 | 版本 | 说明 |

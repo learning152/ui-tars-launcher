@@ -10,7 +10,7 @@
     "build:electron": "tsc -p tsconfig.electron.json && tsc -p tsconfig.preload.json",
     "electron": "electron .",
     "electron:dev": "concurrently \"npm run dev\" \"npm run build:electron && wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && npm run build:electron && electron-builder"
   },
   "dependencies": {
     "antd": "^5.22.2",
@@ -34,13 +34,14 @@
   },
   "build": {
     "appId": "com.uitars.launcher",
-    "productName": "UI-TARS Launcher",
+    "productName": "UI-TARS-Launcher",
     "win": {
-      "target": "nsis",
-      "icon": "build/icon.ico"
+      "target": "portable",
+      "signingHashAlgorithms": []
     },
     "files": [
       "electron/**/*",
+      "preload.js",
       "dist/**/*",
       "package.json"
     ],

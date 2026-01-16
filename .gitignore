@@ -6,6 +6,10 @@ dist/
 out/
 *.log
 
+# But allow upload release installers
+!release/*.exe
+!release/*.zip
+
 # Environment variables
 .env
 .env.local
