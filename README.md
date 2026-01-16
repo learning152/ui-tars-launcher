@@ -1,6 +1,54 @@
 # UI-TARS 启动器
 
-基于 React + Electron + Ant Design 的 agent-tars 配置管理启动器。
+基于 [ByteDance/UI-TARS-desktop](https://github.com/bytedance/UI-TARS-desktop) 开发的 agent-tars 快速启动配置工具。
+
+通过图形界面帮助用户快速配置和管理 agent-tars 的启动参数，无需记忆复杂的命令行。
+
+---
+
+## 快速开始
+
+### 1️前 置 安装
+
+首先需要安装 agent-tars：
+
+```bash
+# 使用 npx 直接启动（无需安装）
+npx @agent-tars/cli@latest
+
+# 或全局安装（需要 Node.js >= 22）
+npm install @agent-tars/cli@latest -g
+
+# 运行示例
+agent-tars --provider volcengine --model doubao-1-5-thinking-vision-pro-250428 --apiKey your-api-key
+agent-tars --provider anthropic --model claude-3-7-sonnet-latest --apiKey your-api-key
+```
+
+### 2️安 装 本 启 动 器
+
+```bash
+# 克隆仓库
+git clone https://github.com/bytedance/UI-TARS-desktop.git
+cd UI-TARS-desktop/UI-tars-test/ui-tars-launcher
+
+# 安装依赖
+npm install
+
+# 启动开发模式
+npm run electron:dev
+```
+
+### 3️打 包 使 用
+
+```bash
+# 构建 React 应用
+npm run build
+
+# 打包成 Windows 安装包
+npm run dist
+```
+
+安装包生成于 `release/` 目录，安装后即可桌面快捷方式启动。
 
 ## 技术栈
 
@@ -55,31 +103,6 @@ ui-tars-launcher/
 └── tsconfig.json
 ```
 
-## 安装依赖
-
-```bash
-cd ui-tars-launcher
-npm install
-```
-
-## 开发模式
-
-```bash
-# 同时启动 Vite 开发服务器和 Electron
-npm run electron:dev
-```
-
-## 构建
-
-```bash
-# 构建 React 应用
-npm run build
-
-# 打包成 Windows 安装包
-npm run dist
-```
-
-生成的安装包位于 `release/` 目录。
 
 ## 配置文件位置
 
