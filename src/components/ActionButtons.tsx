@@ -33,7 +33,8 @@ export function ActionButtons() {
     showEditor,
     deleteConfig,
     launchConfig,
-    incrementUseCount
+    incrementUseCount,
+    showLogWindow
   } = useConfigStore();
   const { message, modal } = useMessage();
 
@@ -70,6 +71,9 @@ export function ActionButtons() {
     if (!config) return;
 
     try {
+      // 显示日志窗口
+      showLogWindow(config);
+
       await launchConfig(config);
       incrementUseCount(config.id);
       message.success(`🚀 ${config.name} 启动成功！`);

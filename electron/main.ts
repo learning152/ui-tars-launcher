@@ -1,12 +1,68 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 
 // ES modules 兼容：获取 __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// 使用 createRequire 来导入 CommonJS 模块
+const require = createRequire(import.meta.url);
+const iconv = require('iconv-lite');
+
+// ANSI 转义码正则表达式 - 匹配终端颜色代码
+const ANSI_ESCAPE_REGEX = /\x1b\[[0-9;]*m|\x1b\[[0-9;]*[A-GHKST]/g;
+// ANSI 清屏和光标控制码
+const ANSI_CONTROL_REGEX = /\x1b\[[0-9;]*[ABCDGHJKfmu]/g;
+
+// 清除 ANSI 转义码
+function stripAnsiCodes(text: string): string {
+  return text
+    .replace(ANSI_ESCAPE_REGEX, '')
+    .replace(ANSI_CONTROL_REGEX, '');
+}
+
+// 检测是否包含 GBK 编码的乱码字符
+function hasGbkGarbled(text: string): boolean {
+  // 检查是否包含大量连续的中文乱码字符（���）
+  const garbagePattern = /[\u00fd\u00fe\ufffd]{3,}/;
+  return garbagePattern.test(text);
+}
+
+// 解码缓冲区，优先使用 GBK（Windows 控制台默认编码）
+function decodeBuffer(buffer: Buffer): string {
+  // Windows 控制台默认使用 GBK 编码，先尝试 GBK
+  let decoded = iconv.decode(buffer, 'gbk');
+
+  // 如果 GBK 解码后仍有乱码，尝试 UTF-8
+  if (hasGbkGarbled(decoded)) {
+    try {
+      const utf8Decoded = buffer.toString('utf-8');
+      // 如果 UTF-8 解码结果看起来更正常（没有大量乱码），使用 UTF-8
+      if (!hasGbkGarbled(utf8Decoded)) {
+        decoded = utf8Decoded;
+      }
+    } catch {
+      // 保持 GBK 解码结果
+    }
+  }
+
+  return decoded;
+}
+
+// 清理和规范化日志文本
+function cleanLogText(text: string): string {
+  // 移除 ANSI 码
+  let cleaned = stripAnsiCodes(text);
+  // 移除多余的空行
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  // 移除行首行尾空白
+  cleaned = cleaned.split('\n').map(line => line.trim()).filter(line => line.length > 0).join('\n');
+  return cleaned;
+}
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -14,7 +70,21 @@ let mainWindow: BrowserWindow | null = null;
 const CONFIG_DIR = path.join(app.getPath('userData'), 'ui-tars-launcher');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'configs.json');
 
-// 进程管理：跟踪所有启动的子进程
+// 运行中的进程信息
+interface RunningProcess {
+  id: string;              // 唯一 ID
+  pid: number;             // 进程 PID
+  configId: string;        // 配置 ID
+  configName: string;      // 配置名称
+  url: string;             // 服务 URL (如果检测到)
+  status: 'running' | 'exited';  // 状态
+  startTime: number;       // 启动时间戳
+}
+
+// 使用 Map 存储进程信息，key 为进程 ID
+const runningProcesses = new Map<string, { proc: any; info: RunningProcess }>();
+
+// 兼容旧代码：保留 childProcesses Set
 const childProcesses: Set<any> = new Set();
 
 // 临时文件路径列表，用于清理
@@ -34,6 +104,21 @@ async function cleanupProcesses() {
     }
   }
   childProcesses.clear();
+
+  // 终止所有运行中的进程（Windows 下需要杀掉整个进程树）
+  for (const [id, entry] of runningProcesses.entries()) {
+    try {
+      if (process.platform === 'win32') {
+        spawn('taskkill', ['/pid', String(entry.proc.pid), '/T', '/F']);
+      } else {
+        entry.proc.kill();
+      }
+      console.log(`已终止进程: ${id}`);
+    } catch (error) {
+      console.error('终止进程失败:', error);
+    }
+  }
+  runningProcesses.clear();
 
   // 清理临时文件
   for (const filePath of tempFiles) {
@@ -159,8 +244,45 @@ function buildCommand(config: any): string {
   return parts.join(' ');
 }
 
+// ==================== 进程管理 IPC ====================
+
+// 获取运行中的进程列表
+ipcMain.handle('get-running-processes', () => {
+  const processes: RunningProcess[] = [];
+  for (const [, { info }] of runningProcesses.entries()) {
+    processes.push(info);
+  }
+  return processes;
+});
+
+// 停止指定进程
+ipcMain.handle('kill-process', async (_, processId: string) => {
+  const entry = runningProcesses.get(processId);
+  if (entry) {
+    try {
+      // Windows 下需要杀掉整个进程树（cmd.exe 及其子进程）
+      if (process.platform === 'win32') {
+        spawn('taskkill', ['/pid', String(entry.proc.pid), '/T', '/F'], {
+          stdio: 'ignore'
+        });
+      } else {
+        entry.proc.kill();
+      }
+      // 从列表中移除
+      runningProcesses.delete(processId);
+      childProcesses.delete(entry.proc);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+  return { success: false, error: 'Process not found' };
+});
+
+// ==================== 配置启动 IPC ====================
+
 // 启动配置
-ipcMain.handle('launch-config', async (_, config) => {
+ipcMain.handle('launch-config', async (event, config) => {
   try {
     const command = buildCommand(config);
 
@@ -172,24 +294,131 @@ ipcMain.handle('launch-config', async (_, config) => {
     // 记录临时文件以便清理
     tempFiles.push(batPath);
 
-    // 启动进程（不使用 detached，以便可以跟踪和控制）
+    // 创建唯一的进程 ID
+    const processId = `${config.id}-${Date.now()}`;
+    const startTime = Date.now();
+
+    // 创建进程信息
+    const processInfo: RunningProcess = {
+      id: processId,
+      pid: 0, // 稍后在 spawn 事件中更新
+      configId: config.id,
+      configName: config.name,
+      url: '',
+      status: 'running',
+      startTime
+    };
+
+    // 使用 pipe 捕获输出
     const proc = spawn('cmd.exe', ['/c', batPath], {
       shell: true,
-      stdio: 'ignore',
+      stdio: ['ignore', 'pipe', 'pipe'],  // stdin, stdout, stderr
       cwd: config.workingDir || undefined
     });
 
     // 跟踪进程以便在应用退出时清理
     childProcesses.add(proc);
 
-    // 进程退出时从跟踪列表中移除
-    proc.on('exit', () => {
+    // 进程启动时添加到运行列表
+    proc.on('spawn', () => {
+      processInfo.pid = proc.pid ?? 0;
+      runningProcesses.set(processId, { proc, info: processInfo });
+      // 通知渲染进程有新进程启动
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('process-started', processInfo);
+      }
+    });
+
+    // 用于跟踪是否已打开浏览器
+    let browserOpened = false;
+
+    // 处理 stdout
+    proc.stdout?.on('data', (data) => {
+      // 解码、清除 ANSI 转义码并清理文本
+      const decoded = decodeBuffer(data as Buffer);
+      const output = cleanLogText(decoded);
+      if (!output) return; // 跳过空输出
+
+      // 发送到渲染进程
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('log-output', {
+          type: 'stdout',
+          text: output,
+          timestamp: new Date().toISOString()
+        });
+      }
+      // 检测 URL 并打开浏览器
+      if (!browserOpened && mainWindow && !mainWindow.isDestroyed()) {
+        const urlMatch = output.match(/https?:\/\/localhost:\d+/gi);
+        if (urlMatch && urlMatch.length > 0) {
+          const url = urlMatch[0];
+          shell.openExternal(url);
+
+          // 更新进程信息中的 URL
+          processInfo.url = url;
+          // 发送进程更新事件
+          mainWindow.webContents.send('process-updated', processInfo);
+
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('log-output', {
+              type: 'info',
+              text: `\n🌐 已自动打开浏览器: ${url}\n`,
+              timestamp: new Date().toISOString()
+            });
+          }
+          browserOpened = true;
+        }
+      }
+    });
+
+    // 处理 stderr
+    proc.stderr?.on('data', (data) => {
+      // 解码、清除 ANSI 转义码并清理文本
+      const decoded = decodeBuffer(data as Buffer);
+      const output = cleanLogText(decoded);
+      if (!output) return; // 跳过空输出
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('log-output', {
+          type: 'stderr',
+          text: output,
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+
+    // 进程退出
+    proc.on('exit', (code) => {
+      processInfo.status = 'exited';
+      runningProcesses.delete(processId);
       childProcesses.delete(proc);
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('log-output', {
+          type: 'exit',
+          text: `\n进程退出，代码: ${code}\n`,
+          timestamp: new Date().toISOString()
+        });
+        // 发送进程退出事件
+        mainWindow.webContents.send('process-exited', { processId, code });
+      }
     });
 
     proc.on('error', (err) => {
       console.error('进程错误:', err);
+      processInfo.status = 'exited';
+      runningProcesses.delete(processId);
       childProcesses.delete(proc);
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('log-output', {
+          type: 'error',
+          text: `进程错误: ${err.message}\n`,
+          timestamp: new Date().toISOString()
+        });
+        // 发送进程退出事件
+        mainWindow.webContents.send('process-exited', { processId, code: -1 });
+      }
     });
 
     return true;

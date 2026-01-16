@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AgentConfig } from './types';
+import { AgentConfig, LogEntry, RunningProcess } from './types';
 
 interface ConfigStore {
   // 状态
@@ -10,6 +10,14 @@ interface ConfigStore {
   editorVisible: boolean;
   editingId: string | null;
   loading: boolean;
+
+  // 日志状态
+  logEntries: LogEntry[];
+  isLogWindowVisible: boolean;
+  selectedLogConfig: AgentConfig | null;
+
+  // 运行进程状态
+  runningProcesses: RunningProcess[];
 
   // 计算属性方法
   getFilteredConfigs: () => AgentConfig[];
@@ -31,6 +39,18 @@ interface ConfigStore {
   duplicateConfig: (id: string) => void;
   incrementUseCount: (id: string) => void;
 
+  // 日志操作
+  addLogEntry: (entry: LogEntry) => void;
+  clearLogs: () => void;
+  showLogWindow: (config: AgentConfig) => void;
+  hideLogWindow: () => void;
+
+  // 进程操作
+  setRunningProcesses: (processes: RunningProcess[]) => void;
+  updateProcess: (process: RunningProcess) => void;
+  removeProcess: (processId: string) => void;
+  killProcess: (processId: string) => Promise<boolean>;
+
   // IPC 操作
   launchConfig: (config: AgentConfig) => Promise<boolean>;
   saveConfigs: (configs: AgentConfig[]) => Promise<boolean>;
@@ -47,6 +67,14 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
   editorVisible: false,
   editingId: null,
   loading: true,
+
+  // 日志状态初始化
+  logEntries: [],
+  isLogWindowVisible: false,
+  selectedLogConfig: null,
+
+  // 运行进程状态初始化
+  runningProcesses: [],
 
   getFilteredConfigs: () => {
     const state = get();
@@ -174,6 +202,51 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
           : c
       )
     })),
+
+  // 日志操作
+  addLogEntry: (entry) => set((state) => ({
+    logEntries: [...state.logEntries, entry]
+  })),
+
+  clearLogs: () => set({ logEntries: [] }),
+
+  showLogWindow: (config) => set({
+    isLogWindowVisible: true,
+    selectedLogConfig: config,
+    logEntries: []  // 清空之前的日志
+  }),
+
+  hideLogWindow: () => set({
+    isLogWindowVisible: false,
+    selectedLogConfig: null
+  }),
+
+  // 进程操作
+  setRunningProcesses: (processes) => set({ runningProcesses: processes }),
+
+  updateProcess: (process) => set((state) => ({
+    runningProcesses: state.runningProcesses.some(p => p.id === process.id)
+      ? state.runningProcesses.map(p => p.id === process.id ? process : p)
+      : [...state.runningProcesses, process]
+  })),
+
+  removeProcess: (processId) => set((state) => ({
+    runningProcesses: state.runningProcesses.filter(p => p.id !== processId)
+  })),
+
+  killProcess: async (processId) => {
+    if (window.electronAPI) {
+      const result = await window.electronAPI.killProcess(processId);
+      if (result.success) {
+        get().removeProcess(processId);
+      }
+      return result.success;
+    }
+    // Web 开发模式下的模拟实现
+    console.log('Kill process:', processId);
+    get().removeProcess(processId);
+    return true;
+  },
 
   // IPC 操作
   launchConfig: async (config) => {

@@ -277,3 +277,138 @@
 .hidden {
   display: none !important;
 }
+
+/* ==================== 日志窗口样式 ==================== */
+.log-window-container {
+  background: #0f172a;
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+.log-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.log-content {
+  font-family: 'Consolas', 'Monaco', 'Courier New', 'Menlo', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e5e7eb;
+  margin: 0;
+  padding: 16px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* 日志行样式 */
+.log-line {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 2px;
+  line-height: 1.5;
+}
+
+.log-timestamp {
+  color: #6b7280;
+  font-size: 11px;
+  margin-right: 8px;
+  min-width: 70px;
+  flex-shrink: 0;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+}
+
+.log-icon {
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.log-text {
+  flex: 1;
+  word-break: break-all;
+}
+
+/* 日志窗口滚动条 */
+.log-window-container::-webkit-scrollbar {
+  width: 10px;
+}
+
+.log-window-container::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.log-window-container::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 5px;
+}
+
+.log-window-container::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ==================== 运行面板样式 ==================== */
+.running-panel {
+  padding: 16px 24px 0;
+}
+
+.running-panel .ant-card {
+  border: 1px solid #10b981;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  margin-bottom: 16px;
+}
+
+.running-panel .ant-card-head {
+  border-bottom: 1px solid #a7f3d0;
+  padding: 8px 16px;
+  min-height: 40px;
+}
+
+.running-panel .ant-card-head-title {
+  padding: 0;
+}
+
+.running-panel .ant-card-body {
+  padding: 12px;
+}
+
+.running-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  margin-right: 8px;
+}
+
+.running-process-item {
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.running-process-item:last-child {
+  margin-bottom: 0;
+}
+
+.process-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.process-duration {
+  font-size: 12px;
+}
+
+.process-url {
+  font-size: 12px;
+  font-family: monospace;
+  color: #6b7280;
+  display: block;
+  padding-left: 60px;
+}

@@ -18,20 +18,33 @@
 - **配置管理**: 新建、编辑、删除、复制配置
 - **搜索过滤**: 按名称/模型搜索，按 Provider 过滤
 - **一键启动**: 命令预览、进程分离启动
+- **运行进程管理**: 实时查看运行中的进程、显示运行时长、支持停止进程
+- **实时日志查看**: 查看启动日志、自动滚动、日志类型高亮、支持清空日志
 - **持久化**: 自动保存、导入/导出 JSON
 - **快捷键**: Ctrl+N (新建)、Delete (删除)、Enter (启动)、Esc (关闭)
 - **统计**: 配置总数、默认配置、最近使用
+
+## 界面预览
+
+![UI 预览](./docs/img/image.png)
 
 ## 目录结构
 
 ```
 ui-tars-launcher/
+├── docs/
+│   └── img/             # 图片资源
 ├── electron/
 │   └── main.ts          # Electron 主进程
 ├── src/
 │   ├── components/      # React 组件
+│   │   ├── ActionButtons.tsx    # 操作按钮组件
+│   │   ├── LogWindow.tsx        # 日志窗口组件
+│   │   └── RunningPanel.tsx     # 运行进程面板组件
 │   ├── hooks/          # 自定义 Hooks
 │   ├── utils/          # 工具函数
+│   ├── styles/         # 全局样式
+│   │   └── global.css
 │   ├── types.ts        # 类型定义
 │   ├── store.ts        # Zustand 状态管理
 │   ├── App.tsx         # 根组件

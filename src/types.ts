@@ -25,6 +25,24 @@ export interface AppConfig {
   configs: AgentConfig[];
 }
 
+// 日志输出类型
+export interface LogEntry {
+  type: 'stdout' | 'stderr' | 'info' | 'error' | 'exit';
+  text: string;
+  timestamp: string;
+}
+
+// 运行中的进程信息
+export interface RunningProcess {
+  id: string;
+  pid: number;
+  configId: string;
+  configName: string;
+  url: string;
+  status: 'running' | 'exited';
+  startTime: number;
+}
+
 // Electron API 类型定义
 export interface ElectronAPI {
   getConfigs: () => Promise<AgentConfig[]>;
@@ -33,6 +51,14 @@ export interface ElectronAPI {
   exportConfigs: (configs: AgentConfig[]) => Promise<boolean>;
   importConfigs: () => Promise<AgentConfig[] | null>;
   selectDirectory: () => Promise<string>;
+  // 日志监听
+  onLogOutput: (callback: (entry: LogEntry) => void) => (() => void);
+  // 进程管理
+  getRunningProcesses: () => Promise<RunningProcess[]>;
+  killProcess: (processId: string) => Promise<{ success: boolean; error?: string }>;
+  onProcessStarted: (callback: (process: RunningProcess) => void) => (() => void);
+  onProcessExited: (callback: (data: { processId: string; code: number | null }) => void) => (() => void);
+  onProcessUpdated: (callback: (process: RunningProcess) => void) => (() => void);
 }
 
 declare global {

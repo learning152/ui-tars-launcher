@@ -35,4 +35,5 @@ pnpm-debug.log*
 tmpclaude-*
 
 .claude
-docs
+docs/UI
+docs/plan

@@ -6,6 +6,8 @@ import { ConfigList } from './components/ConfigList';
 import { CommandPreview } from './components/CommandPreview';
 import { ActionButtons } from './components/ActionButtons';
 import { ConfigEditor } from './components/ConfigEditor';
+import { LogWindow } from './components/LogWindow';
+import { RunningPanel } from './components/RunningPanel';
 import { useConfigStore } from './store';
 import { useKeyboard } from './hooks/useKeyboard';
 import { MessageProvider } from './hooks/useMessage';
@@ -42,6 +44,51 @@ function AppContent() {
     loadConfigs();
   }, [setConfigs]);
 
+  // 启动日志监听
+  useEffect(() => {
+    const cleanup = window.electronAPI.onLogOutput?.((entry) => {
+      const { addLogEntry } = useConfigStore.getState();
+      addLogEntry(entry);
+    });
+
+    return () => {
+      cleanup?.();
+    };
+  }, []);
+
+  // 进程事件监听
+  useEffect(() => {
+    // 监听进程启动
+    const cleanupStart = window.electronAPI.onProcessStarted?.((process) => {
+      useConfigStore.getState().updateProcess(process);
+    });
+
+    // 监听进程退出
+    const cleanupExit = window.electronAPI.onProcessExited?.((data) => {
+      useConfigStore.getState().removeProcess(data.processId);
+    });
+
+    // 监听进程更新（如 URL 变化）
+    const cleanupUpdate = window.electronAPI.onProcessUpdated?.((process) => {
+      useConfigStore.getState().updateProcess(process);
+    });
+
+    // 初始化时加载已有的运行进程
+    const loadRunningProcesses = async () => {
+      if (window.electronAPI) {
+        const processes = await window.electronAPI.getRunningProcesses();
+        useConfigStore.getState().setRunningProcesses(processes);
+      }
+    };
+    loadRunningProcesses();
+
+    return () => {
+      cleanupStart?.();
+      cleanupExit?.();
+      cleanupUpdate?.();
+    };
+  }, []);
+
   // 键盘快捷键（必须在 MessageProvider 内部调用）
   useKeyboard();
 
@@ -61,6 +108,7 @@ function AppContent() {
         <div className="glass-container">
           <Header />
           <SearchBar />
+          <RunningPanel />
           <ConfigList />
           <CommandPreview />
           <ActionButtons />
@@ -71,6 +119,7 @@ function AppContent() {
         editingId={editingId}
         onClose={() => setEditorVisible(false)}
       />
+      <LogWindow />
     </div>
   );
 }
