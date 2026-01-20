@@ -54,9 +54,9 @@ npm run dist
 
 直接下载已打包的 Windows 便携版：
 
-| 版本 | 下载链接 | 说明 |
-|------|----------|------|
-| v1.0.0 | [Releases](https://github.com/learning152/ui-tars-launcher/releases) | Windows 便携版（约 125MB） |
+| 版本 | GitHub | GitCode | 说明 |
+|------|--------|---------|------|
+| v1.0.0 | [下载](https://github.com/learning152/ui-tars-launcher/releases) | [下载](https://gitcode.com/CuiHuo/ui-tars-launcher/releases) | Windows 便携版（约 125MB） |
 
 下载后解压，双击 `UI-TARS-Launcher.exe` 即可运行。
 
