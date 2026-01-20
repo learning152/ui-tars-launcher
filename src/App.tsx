@@ -44,6 +44,21 @@ function AppContent() {
     loadConfigs();
   }, [setConfigs]);
 
+  // 初始化：检测环境状态
+  useEffect(() => {
+    const checkEnv = async () => {
+      if (window.electronAPI && window.electronAPI.checkEnvironment) {
+        try {
+          const status = await window.electronAPI.checkEnvironment();
+          useConfigStore.getState().setEnvStatus(status);
+        } catch {
+          // 环境检测失败，忽略
+        }
+      }
+    };
+    checkEnv();
+  }, []);
+
   // 启动日志监听
   useEffect(() => {
     const cleanup = window.electronAPI.onLogOutput?.((entry) => {

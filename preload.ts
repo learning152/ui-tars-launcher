@@ -74,5 +74,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const listener = (_event: IpcRendererEvent, process: RunningProcess) => callback(process);
     ipcRenderer.on('process-updated', listener);
     return () => ipcRenderer.removeListener('process-updated', listener);
+  },
+
+  // ==================== 环境检测 ====================
+
+  // 检测环境状态
+  checkEnvironment: (): Promise<{ nodeInstalled: boolean; nodeVersion?: string; npxAvailable: boolean; agentTarsInstalled: boolean; agentTarsVersion?: string }> =>
+    ipcRenderer.invoke('check-environment'),
+
+  // 安装 agent-tars
+  installAgentTars: (): Promise<{ success: boolean; output?: string; error?: string }> =>
+    ipcRenderer.invoke('install-agent-tars'),
+
+  // 打开外部链接
+  openExternal: (url: string): Promise<void> =>
+    ipcRenderer.invoke('open-external', url),
+
+  // 安装进度监听
+  onInstallProgress: (callback: (data: { message: string }) => void) => {
+    const listener = (_event: IpcRendererEvent, data: { message: string }) => callback(data);
+    ipcRenderer.on('install-progress', listener);
+    return () => ipcRenderer.removeListener('install-progress', listener);
   }
 });

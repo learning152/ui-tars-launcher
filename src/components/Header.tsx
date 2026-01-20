@@ -2,6 +2,7 @@ import React from 'react';
 import { Row, Col, Space, Typography } from 'antd';
 import { useConfigStore } from '../store';
 import { useMessage } from '../hooks/useMessage';
+import { EnvironmentChecker } from './EnvironmentChecker';
 
 const { Title, Text } = Typography;
 
@@ -61,7 +62,8 @@ export function Header() {
           </div>
         </Col>
         <Col>
-          <Space size="middle">
+          <Space size="middle" align="center">
+            <EnvironmentChecker />
             <button
               onClick={handleExport}
               style={{

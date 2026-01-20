@@ -43,6 +43,15 @@ export interface RunningProcess {
   startTime: number;
 }
 
+// 环境状态类型
+export interface EnvironmentStatus {
+  nodeInstalled: boolean;
+  nodeVersion?: string;
+  npxAvailable: boolean;
+  agentTarsInstalled: boolean;
+  agentTarsVersion?: string;
+}
+
 // Electron API 类型定义
 export interface ElectronAPI {
   getConfigs: () => Promise<AgentConfig[]>;
@@ -59,6 +68,14 @@ export interface ElectronAPI {
   onProcessStarted: (callback: (process: RunningProcess) => void) => (() => void);
   onProcessExited: (callback: (data: { processId: string; code: number | null }) => void) => (() => void);
   onProcessUpdated: (callback: (process: RunningProcess) => void) => (() => void);
+  // 环境检测
+  checkEnvironment: () => Promise<EnvironmentStatus>;
+  // 安装 agent-tars
+  installAgentTars: () => Promise<{ success: boolean; output?: string; error?: string }>;
+  // 打开外部链接
+  openExternal: (url: string) => Promise<void>;
+  // 安装进度监听
+  onInstallProgress: (callback: (data: { message: string }) => void) => (() => void);
 }
 
 declare global {

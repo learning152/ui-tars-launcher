@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AgentConfig, LogEntry, RunningProcess } from './types';
+import { AgentConfig, LogEntry, RunningProcess, EnvironmentStatus } from './types';
 
 interface ConfigStore {
   // 状态
@@ -18,6 +18,11 @@ interface ConfigStore {
 
   // 运行进程状态
   runningProcesses: RunningProcess[];
+
+  // 环境状态
+  envStatus: EnvironmentStatus | null;
+  installing: boolean;
+  installMessage: string;
 
   // 计算属性方法
   getFilteredConfigs: () => AgentConfig[];
@@ -57,6 +62,14 @@ interface ConfigStore {
   exportConfigs: (configs: AgentConfig[]) => Promise<boolean>;
   importConfigs: () => Promise<AgentConfig[] | null>;
   selectDirectory: () => Promise<string>;
+
+  // 环境操作
+  setEnvStatus: (status: EnvironmentStatus) => void;
+  setInstalling: (installing: boolean) => void;
+  setInstallMessage: (message: string) => void;
+  checkEnvironment: () => Promise<void>;
+  installAgentTars: () => Promise<boolean>;
+  openExternalLink: (url: string) => Promise<void>;
 }
 
 export const useConfigStore = create<ConfigStore>((set, get) => ({
@@ -75,6 +88,11 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
   // 运行进程状态初始化
   runningProcesses: [],
+
+  // 环境状态初始化
+  envStatus: null,
+  installing: false,
+  installMessage: '',
 
   getFilteredConfigs: () => {
     const state = get();
@@ -328,5 +346,65 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
     }
     // Web 开发模式下返回空字符串
     return '';
+  },
+
+  // 环境操作
+  setEnvStatus: (status) => set({ envStatus: status }),
+
+  setInstalling: (installing) => set({ installing }),
+
+  setInstallMessage: (message) => set({ installMessage: message }),
+
+  checkEnvironment: async () => {
+    if (window.electronAPI && window.electronAPI.checkEnvironment) {
+      try {
+        const status = await window.electronAPI.checkEnvironment();
+        set({ envStatus: status });
+      } catch {
+        // 检测失败，保持默认状态
+      }
+    }
+  },
+
+  installAgentTars: async () => {
+    if (window.electronAPI && window.electronAPI.installAgentTars) {
+      set({ installing: true, installMessage: '正在准备安装...' });
+
+      // 监听安装进度
+      const cleanup = window.electronAPI.onInstallProgress?.((data) => {
+        set({ installMessage: data.message });
+      });
+
+      try {
+        const result = await window.electronAPI.installAgentTars();
+        cleanup?.();
+
+        if (result.success) {
+          // 安装成功后重新检测环境
+          const status = await window.electronAPI.checkEnvironment();
+          set({ envStatus: status, installing: false, installMessage: '' });
+          return true;
+        } else {
+          set({ installing: false, installMessage: result.error || '安装失败' });
+          return false;
+        }
+      } catch {
+        cleanup?.();
+        set({ installing: false, installMessage: '安装失败' });
+        return false;
+      }
+    }
+    // Web 开发模式下的模拟实现
+    console.log('Install agent-tars (simulated)');
+    return true;
+  },
+
+  openExternalLink: async (url: string) => {
+    if (window.electronAPI && window.electronAPI.openExternal) {
+      await window.electronAPI.openExternal(url);
+    } else {
+      // Web 开发模式下直接打开
+      window.open(url, '_blank');
+    }
   }
 }));

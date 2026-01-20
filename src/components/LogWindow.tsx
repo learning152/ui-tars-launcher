@@ -147,7 +147,7 @@ export function LogWindow() {
       }
       width={800}
       style={{ top: 20 }}
-      bodyStyle={{ padding: 0 }}
+      styles={{ body: { padding: 0 } }}
     >
       <div className="log-window-container">
         {logEntries.length === 0 ? (

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   Form,
@@ -14,6 +14,8 @@ import {
 import { AgentConfig, Provider } from '../types';
 import { useConfigStore } from '../store';
 import { useMessage } from '../hooks/useMessage';
+import { ApiKeyHelpTooltip } from './ApiKeyHelpTooltip';
+import { IconPicker } from './IconPicker';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -29,6 +31,7 @@ export function ConfigEditor({ visible, editingId, onClose }: ConfigEditorProps)
   const { configs, saveConfig, selectDirectory } = useConfigStore();
   const { message } = useMessage();
   const [form] = Form.useForm();
+  const [iconPickerVisible, setIconPickerVisible] = useState(false);
   const editingConfig = configs.find((c) => c.id === editingId);
 
   useEffect(() => {
@@ -114,7 +117,20 @@ export function ConfigEditor({ visible, editingId, onClose }: ConfigEditorProps)
               label={<span className="form-label">图标</span>}
               name="icon"
             >
-              <Input placeholder="🔥" maxLength={2} />
+              <Input
+                placeholder="选择图标"
+                maxLength={2}
+                addonAfter={
+                  <Button
+                    type="text"
+                    size="small"
+                    onClick={() => setIconPickerVisible(true)}
+                    style={{ padding: '0 8px', fontWeight: 500 }}
+                  >
+                    选择
+                  </Button>
+                }
+              />
             </Form.Item>
           </Col>
         </Row>
@@ -145,12 +161,24 @@ export function ConfigEditor({ visible, editingId, onClose }: ConfigEditorProps)
           </Col>
         </Row>
 
-        <Form.Item
-          label={<span className="form-label">API Key *</span>}
-          name="apiKey"
-          rules={[{ required: true, message: '请输入 API Key' }]}
-        >
-          <Input.Password placeholder="97c49ed8-c7ea-4f3e-a185-09a571fac271" />
+        <Form.Item noStyle shouldUpdate={(prev, next) => prev.provider !== next.provider}>
+          {({ getFieldValue }) => {
+            const provider = getFieldValue('provider');
+            return (
+              <Form.Item
+                label={
+                  <Space>
+                    <span className="form-label">API Key *</span>
+                    <ApiKeyHelpTooltip provider={provider} />
+                  </Space>
+                }
+                name="apiKey"
+                rules={[{ required: true, message: '请输入 API Key' }]}
+              >
+                <Input.Password placeholder="97c49ed8-c7ea-4f3e-a185-09a571fac271" />
+              </Form.Item>
+            );
+          }}
         </Form.Item>
 
         <Form.Item name="useConda" valuePropName="checked">
@@ -220,6 +248,14 @@ export function ConfigEditor({ visible, editingId, onClose }: ConfigEditorProps)
           </Space>
         </Form.Item>
       </Form>
+
+      {/* 图标选择器 */}
+      <IconPicker
+        visible={iconPickerVisible}
+        value={form.getFieldValue('icon')}
+        onChange={(icon) => form.setFieldValue('icon', icon)}
+        onClose={() => setIconPickerVisible(false)}
+      />
     </Modal>
   );
 }

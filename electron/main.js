@@ -421,3 +421,90 @@ ipcMain.handle('select-directory', async () => {
         return '';
     }
 });
+// ==================== 环境检测 IPC ====================
+// 检测环境状态（Node.js + agent-tars）
+ipcMain.handle('check-environment', async () => {
+    // 检测 Node.js
+    const nodeStatus = await new Promise((resolve) => {
+        const proc = spawn('node', ['--version'], { shell: true });
+        let output = '';
+        proc.stdout?.on('data', (data) => { output += data.toString(); });
+        proc.on('close', (code) => {
+            if (code === 0 && output) {
+                resolve({ installed: true, version: output.trim() });
+            }
+            else {
+                resolve({ installed: false });
+            }
+        });
+        proc.on('error', () => resolve({ installed: false }));
+    });
+    // 检测 npx（通常随 Node.js 一起安装）
+    const npxStatus = await new Promise((resolve) => {
+        const proc = spawn('npx', ['--version'], { shell: true });
+        proc.on('close', (code) => resolve(code === 0));
+        proc.on('error', () => resolve(false));
+    });
+    // 检测 agent-tars
+    const agentTarsStatus = await new Promise((resolve) => {
+        const proc = spawn('agent-tars', ['--version'], { shell: true });
+        let output = '';
+        proc.stdout?.on('data', (data) => { output += data.toString(); });
+        proc.on('close', (code) => {
+            if (code === 0 && output) {
+                const versionMatch = output.match(/(\d+\.\d+\.\d+)/);
+                resolve({ installed: true, version: versionMatch ? versionMatch[1] : 'unknown' });
+            }
+            else {
+                resolve({ installed: false });
+            }
+        });
+        proc.on('error', () => resolve({ installed: false }));
+    });
+    return {
+        nodeInstalled: nodeStatus.installed,
+        nodeVersion: nodeStatus.version,
+        npxAvailable: npxStatus,
+        agentTarsInstalled: agentTarsStatus.installed,
+        agentTarsVersion: agentTarsStatus.version
+    };
+});
+// 安装 agent-tars
+ipcMain.handle('install-agent-tars', async () => {
+    return new Promise((resolve) => {
+        const proc = spawn('npx', ['@agent-tars/cli@latest'], { shell: true, stdio: 'pipe' });
+        let output = '';
+        let errorOutput = '';
+        const sendProgress = (message) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('install-progress', { message });
+            }
+        };
+        sendProgress('正在安装 agent-tars...');
+        proc.stdout?.on('data', (data) => {
+            output += data.toString();
+            // 发送进度更新
+            const lines = output.split('\n');
+            if (lines.length > 0) {
+                sendProgress(lines[lines.length - 1] || '正在安装...');
+            }
+        });
+        proc.stderr?.on('data', (data) => {
+            errorOutput += data.toString();
+        });
+        proc.on('close', (code) => {
+            if (code === 0) {
+                sendProgress('安装完成！');
+                resolve({ success: true, output });
+            }
+            else {
+                resolve({ success: false, error: errorOutput || '安装失败' });
+            }
+        });
+        proc.on('error', (err) => resolve({ success: false, error: err.message }));
+    });
+});
+// 打开外部链接
+ipcMain.handle('open-external', async (_event, url) => {
+    await shell.openExternal(url);
+});

@@ -41,5 +41,18 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
         const listener = (_event, process) => callback(process);
         electron_1.ipcRenderer.on('process-updated', listener);
         return () => electron_1.ipcRenderer.removeListener('process-updated', listener);
+    },
+    // ==================== 环境检测 ====================
+    // 检测环境状态
+    checkEnvironment: () => electron_1.ipcRenderer.invoke('check-environment'),
+    // 安装 agent-tars
+    installAgentTars: () => electron_1.ipcRenderer.invoke('install-agent-tars'),
+    // 打开外部链接
+    openExternal: (url) => electron_1.ipcRenderer.invoke('open-external', url),
+    // 安装进度监听
+    onInstallProgress: (callback) => {
+        const listener = (_event, data) => callback(data);
+        electron_1.ipcRenderer.on('install-progress', listener);
+        return () => electron_1.ipcRenderer.removeListener('install-progress', listener);
     }
 });

@@ -1,6 +1,6 @@
 {
   "name": "ui-tars-launcher",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "UI-TARS Configuration Launcher",
   "main": "electron/main.js",
   "type": "module",
@@ -36,8 +36,13 @@
     "appId": "com.uitars.launcher",
     "productName": "UI-TARS-Launcher",
     "win": {
-      "target": "portable",
-      "signingHashAlgorithms": []
+      "target": ["dir", "zip"],
+      "signingHashAlgorithms": [],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     },
     "files": [
       "electron/**/*",

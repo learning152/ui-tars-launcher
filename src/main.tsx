@@ -1,7 +1,7 @@
 import ReactDOM from 'react-dom/client';
 import 'antd/dist/reset.css';
 import App from './App';
-import { AgentConfig } from './types';
+import { AgentConfig, LogEntry, RunningProcess, EnvironmentStatus } from './types';
 
 // 网页开发模式下的 polyfill
 // 为 localStorage 配置加载/保存提供与 Electron API 兼容的接口
@@ -115,6 +115,62 @@ if (!window.electronAPI) {
       // 网页模式下无法选择目录，返回空字符串
       alert('网页模式下无法选择本地目录，请直接输入工作目录路径。');
       return Promise.resolve('');
+    },
+
+    // 日志监听
+    onLogOutput: (callback: (entry: LogEntry) => void) => {
+      // 网页模式下不发送日志
+      return () => {};
+    },
+
+    // 进程管理
+    getRunningProcesses: async (): Promise<RunningProcess[]> => {
+      return Promise.resolve([]);
+    },
+
+    killProcess: async (processId: string): Promise<{ success: boolean; error?: string }> => {
+      console.log('Kill process (web mode):', processId);
+      return Promise.resolve({ success: true });
+    },
+
+    onProcessStarted: (callback: (process: RunningProcess) => void) => {
+      return () => {};
+    },
+
+    onProcessExited: (callback: (data: { processId: string; code: number | null }) => void) => {
+      return () => {};
+    },
+
+    onProcessUpdated: (callback: (process: RunningProcess) => void) => {
+      return () => {};
+    },
+
+    // 环境检测
+    checkEnvironment: async (): Promise<EnvironmentStatus> => {
+      // 网页模式下返回模拟数据
+      return Promise.resolve({
+        nodeInstalled: true,
+        nodeVersion: 'v22.0.0',
+        npxAvailable: true,
+        agentTarsInstalled: true,
+        agentTarsVersion: '1.0.0'
+      });
+    },
+
+    // 安装 agent-tars
+    installAgentTars: async (): Promise<{ success: boolean; output?: string; error?: string }> => {
+      console.log('Install agent-tars (web mode)');
+      return Promise.resolve({ success: true, output: 'Simulated install' });
+    },
+
+    // 打开外部链接
+    openExternal: async (url: string): Promise<void> => {
+      window.open(url, '_blank');
+    },
+
+    // 安装进度监听
+    onInstallProgress: (callback: (data: { message: string }) => void) => {
+      return () => {};
     }
   };
 }

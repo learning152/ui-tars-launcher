@@ -56,7 +56,7 @@ npm run dist
 
 | 版本 | GitHub | GitCode | 说明 |
 |------|--------|---------|------|
-| v1.0.0 | [下载](https://github.com/learning152/ui-tars-launcher/releases) | [下载](https://gitcode.com/CuiHuo/ui-tars-launcher/releases) | Windows 便携版（约 125MB） |
+| v1.0.1 | [下载](https://github.com/learning152/ui-tars-launcher/releases) | [下载](https://gitcode.com/CuiHuo/ui-tars-launcher/releases) | Windows 便携版（约 121MB） |
 
 下载后解压，双击 `UI-TARS-Launcher.exe` 即可运行。
 
@@ -78,6 +78,10 @@ npm run dist
 - **一键启动**: 命令预览、进程分离启动
 - **运行进程管理**: 实时查看运行中的进程、显示运行时长、支持停止进程
 - **实时日志查看**: 查看启动日志、自动滚动、日志类型高亮、支持清空日志
+- **环境检测**: 自动检测 Node.js 和 agent-tars 安装状态
+- **一键安装**: 内置 agent-tars 安装引导，无需手动输入命令
+- **API Key 帮助**: 根据不同 Provider 显示 API Key 获取链接，支持一键复制
+- **图标选择**: 40+ 预设图标供配置选择，支持自定义
 - **持久化**: 自动保存、导入/导出 JSON
 - **快捷键**: Ctrl+N (新建)、Delete (删除)、Enter (启动)、Esc (关闭)
 - **统计**: 配置总数、默认配置、最近使用
@@ -96,9 +100,16 @@ ui-tars-launcher/
 │   └── main.ts          # Electron 主进程
 ├── src/
 │   ├── components/      # React 组件
-│   │   ├── ActionButtons.tsx    # 操作按钮组件
-│   │   ├── LogWindow.tsx        # 日志窗口组件
-│   │   └── RunningPanel.tsx     # 运行进程面板组件
+│   │   ├── ActionButtons.tsx       # 操作按钮组件
+│   │   ├── ApiKeyHelpTooltip.tsx   # API Key 帮助提示组件
+│   │   ├── ConfigEditor.tsx        # 配置编辑器组件
+│   │   ├── EnvironmentChecker.tsx  # 环境检测和安装引导组件
+│   │   ├── Header.tsx              # 头部组件
+│   │   ├── IconPicker.tsx          # 图标选择器组件
+│   │   ├── LogWindow.tsx           # 日志窗口组件
+│   │   └── RunningPanel.tsx        # 运行进程面板组件
+│   ├── data/            # 数据文件
+│   │   └── providerLinks.ts        # Provider API Key 获取链接数据
 │   ├── hooks/          # 自定义 Hooks
 │   ├── utils/          # 工具函数
 │   ├── styles/         # 全局样式
