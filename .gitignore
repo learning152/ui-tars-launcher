@@ -10,6 +10,8 @@ out/
 !release/*.exe
 !release/*.zip
 
+release
+
 # Environment variables
 .env
 .env.local
